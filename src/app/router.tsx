@@ -1,9 +1,11 @@
 import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
-import { RequireOwner } from './guards/RequireOwner'
-import { AdminLayout } from './layouts/AdminLayout'
 import { PublicLayout } from './layouts/PublicLayout'
 import NotFoundPage from './NotFoundPage'
+
+// El área /admin se carga bajo demanda: el catálogo público no descarga el panel.
+const AdminRoot = lazy(() => import('./AdminRoot'))
+const AdminLayout = lazy(() => import('./layouts/AdminLayout').then((m) => ({ default: m.AdminLayout })))
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'))
@@ -25,7 +27,7 @@ export const router = createBrowserRouter([
   { path: '/admin/login', element: <LoginPage /> },
   {
     path: '/admin',
-    element: <RequireOwner />,
+    element: <AdminRoot />,
     children: [
       {
         element: <AdminLayout />,

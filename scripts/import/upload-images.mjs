@@ -1,12 +1,13 @@
 // Sube las imágenes decodificadas (backups/import/images/products/*) al bucket
 // product-images del proyecto vinculado, una por una y con reintentos.
 // Usa la sesión de `npx supabase login` (no requiere claves en archivos).
-// Uso: node scripts/import/upload-images.mjs
+// Uso: node scripts/import/upload-images.mjs [carpeta]   (por defecto: imágenes originales)
+//      node scripts/import/upload-images.mjs backups/import/optimized/products
 import { execFileSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const DIR = 'backups/import/images/products'
+const DIR = process.argv[2] ?? 'backups/import/images/products'
 const files = readdirSync(DIR).sort()
 
 function cli(args) {

@@ -37,10 +37,21 @@ export type ProductFormInput = z.input<typeof productSchema>
 export type ProductValues = z.output<typeof productSchema>
 
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
+/** Límite del bucket (también validado por Storage). */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+/** Tamaño máximo aceptado antes de optimizar en el navegador (fotos de teléfono). */
+export const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024
 
-export function validateImageFile(file: File): string | null {
+/** Validación del archivo elegido, antes de optimizarlo. */
+export function validateImageFile(file: Pick<File, 'type' | 'size'>): string | null {
   if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return 'Formato no permitido. Usa JPG, PNG o WebP.'
-  if (file.size > MAX_IMAGE_BYTES) return 'La imagen supera 5 MB.'
+  if (file.size > MAX_SOURCE_IMAGE_BYTES) return 'La imagen supera 20 MB.'
+  return null
+}
+
+/** Validación del archivo final que se sube a Storage. */
+export function validateUploadImage(file: Pick<File, 'type' | 'size'>): string | null {
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return 'Formato no permitido. Usa JPG, PNG o WebP.'
+  if (file.size > MAX_IMAGE_BYTES) return 'La imagen sigue superando 5 MB tras optimizarla.'
   return null
 }
