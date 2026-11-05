@@ -60,9 +60,13 @@ Todas las funciones fijan `search_path = ''` y califican objetos con su esquema.
 - Autenticado sin perfil: 0 filas en `products`/`store_settings`; `42501` al insertar productos, vender, mover stock, ver reportes, anular o autoasignarse como propietario.
 - Propietario: no puede cambiar `stock_quantity` directamente, borrar productos, editar/borrar ventas ni modificar movimientos.
 
-## Pendiente de verificar contra el proyecto remoto
+## Verificado contra el proyecto remoto CoplinTech (`lcnfdcoteztogbnzzdie`)
 
-- [ ] Registro público desactivado en el dashboard de producción.
+- [x] Registro público desactivado (`/auth/v1/settings` → `disable_signup: true`).
+- [x] Con la clave publicable (anon): las 8 tablas privadas responden `42501`; `create_sale`, `void_sale` y `report_summary` responden `42501`; `get_public_store_info` devuelve solo `store_name` y `whatsapp_number`.
+- [x] Un único propietario activo vinculado en `owner_profiles`.
+
+## Pendiente
+
 - [ ] Prueba de concurrencia real (`tests/db/concurrency.test.ts` con `DATABASE_URL` de Supabase local).
-- [ ] Llamar a las RPC con la clave anon real (por ejemplo con `curl`) y confirmar las mismas respuestas.
-- [ ] Revisar **Advisors → Security** en el dashboard de Supabase tras aplicar las migraciones.
+- [ ] Revisar **Advisors → Security** en el dashboard de Supabase.

@@ -35,3 +35,6 @@ coverage
 
 # Herramientas locales
 .claude/
+
+# Respaldos locales de la base de datos (contienen datos reales)
+backups/

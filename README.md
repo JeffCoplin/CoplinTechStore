@@ -48,7 +48,7 @@ Rutas principales:
 | `npm run build` | Build de producción en `dist/` |
 | `npm run check:bundle` | Revisa que `dist/` no contenga secretos privados |
 
-Detalle en [`docs/TESTING.md`](docs/TESTING.md).
+Detalle en [`docs/TESTING.md`](docs/TESTING.md). El catálogo inicial se importó del proyecto anterior: ver [`docs/IMPORT_JEFFPOS.md`](docs/IMPORT_JEFFPOS.md).
 
 ## Estructura
 
