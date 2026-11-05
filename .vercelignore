@@ -1,0 +1,11 @@
+# No subir a Vercel archivos locales (secretos, respaldos con datos reales, artefactos).
+.env
+.env.*
+!.env.example
+backups/
+node_modules/
+dist/
+coverage/
+.claude/
+supabase/.temp/
+supabase/.branches/

@@ -28,8 +28,8 @@ for (const [i, file] of files.entries()) {
       done = true
     } catch (e) {
       const msg = `${e.stdout ?? ''}${e.stderr ?? ''}`
-      // Ya subida en un intento anterior cuya respuesta se perdió.
-      if (/already exists|Duplicate|409/i.test(msg)) done = true
+      // Ya subida en un intento anterior cuya respuesta se perdió (solo errores de duplicado, no de red).
+      if (!/NetworkError|Transport/i.test(msg) && /already exists|Duplicate/i.test(msg)) done = true
     }
   }
   if (done) ok++
