@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { formatDOP } from '@/lib/currency/format'
 import { cn } from '@/lib/utils'
 import { CATALOG_PAGE_SIZE, useCatalogCategories, useCatalogProducts, useCatalogRealtime, useRealtimeStatus } from './hooks'
+import { CatalogHero } from './CatalogHero'
 import { ProductImage } from './ProductImage'
 
 export default function CatalogPage() {
@@ -52,10 +53,10 @@ export default function CatalogPage() {
 
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Catálogo</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Precios y disponibilidad actualizados. Consulta por WhatsApp desde cada producto.</p>
-      </div>
+      <CatalogHero
+        compact={Boolean(search || category || page > 0)}
+        productCount={!search && !category && products.data ? products.data.total : null}
+      />
 
       <div className="flex flex-col gap-3">
         <label htmlFor="catalog-search" className="sr-only">

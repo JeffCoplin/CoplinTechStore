@@ -40,10 +40,11 @@ export default function LoginPage() {
   })
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
+    <main className="relative isolate flex min-h-svh flex-col items-center justify-center gap-8 overflow-hidden p-4">
+      <div aria-hidden className="pointer-events-none absolute top-1/4 left-1/2 -z-10 size-[28rem] -translate-x-1/2 rounded-full bg-white/[0.05] blur-3xl" />
+      <Brand variant="stacked" className="max-w-56 motion-safe:animate-float" />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <Brand className="mb-2" />
           <CardTitle>Iniciar sesión</CardTitle>
           <CardDescription>Acceso exclusivo para la cuenta propietaria.</CardDescription>
         </CardHeader>

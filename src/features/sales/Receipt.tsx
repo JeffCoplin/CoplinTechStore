@@ -1,3 +1,4 @@
+import { BRAND_ASSETS, BRAND_TAGLINE } from '@/components/navigation/Brand'
 import { formatDOP } from '@/lib/currency/format'
 import { formatDateTime } from '@/lib/dates/santo-domingo'
 import { paymentMethodLabel } from '@/lib/domain/payments'
@@ -7,9 +8,12 @@ import type { SaleDetail } from './api'
 export function Receipt({ sale, storeName }: { sale: SaleDetail; storeName: string }) {
   return (
     <div id="receipt" className="mx-auto w-full max-w-sm rounded-lg border bg-card p-5 font-mono text-sm print:max-w-none print:border-0 print:p-0">
-      <div className="text-center">
-        <p className="text-base font-bold">{storeName}</p>
-        <p className="text-xs">Recibo interno</p>
+      <div className="flex flex-col items-center text-center">
+        {/* Logo blanco en pantalla; al imprimir se invierte a negro sobre papel blanco. */}
+        <img src={BRAND_ASSETS.mark} alt="" aria-hidden width={464} height={376} className="mb-2 h-10 w-auto print:invert" />
+        <img src={BRAND_ASSETS.wordmark} alt={storeName} width={878} height={82} className="h-3 w-auto print:invert" />
+        <p className="mt-1 text-[9px] tracking-[0.2em] uppercase opacity-70">{BRAND_TAGLINE}</p>
+        <p className="mt-2 text-xs">Recibo interno</p>
         <p className="mt-2 text-xs">{sale.sale_number}</p>
         <p className="text-xs">{formatDateTime(sale.created_at)}</p>
         {sale.status === 'voided' && <p className="mt-2 border border-current py-1 text-xs font-bold">VENTA ANULADA</p>}

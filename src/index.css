@@ -5,6 +5,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Movimiento suave del ícono de marca (solo con motion-safe). */
+@theme {
+  --animate-float: float 7s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(-1.5deg);
+    }
+  }
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Inter Variable', sans-serif;
@@ -140,6 +154,10 @@
   #receipt * {
     visibility: visible;
     color: #000 !important;
+  }
+  /* Las imágenes del logo conservan su fondo transparente (se invierten a negro con print:invert). */
+  #receipt,
+  #receipt *:not(img) {
     background: #fff !important;
   }
   #receipt {

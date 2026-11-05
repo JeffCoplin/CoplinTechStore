@@ -2,24 +2,52 @@
 <html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Catálogo de productos de CoplinTech: precios en RD$ y disponibilidad actualizada." />
+    <title>CoplinTech — Conectando tecnología y calidad</title>
+    <meta name="description" content="Catálogo de CoplinTech: precios en RD$ y disponibilidad actualizada. Consulta por WhatsApp." />
     <meta name="theme-color" content="#14181f" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/icon-192.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Vista previa al compartir el enlace (WhatsApp, Instagram, Facebook). -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CoplinTech" />
     <meta property="og:title" content="CoplinTech — Catálogo" />
-    <meta property="og:description" content="Precios en RD$ y disponibilidad actualizada. Consulta por WhatsApp." />
+    <meta property="og:description" content="Conectando tecnología y calidad. Precios en RD$ y disponibilidad actualizada." />
+    <meta property="og:image" content="https://coplintech.vercel.app/brand/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="es_DO" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <!-- Abre la conexión con Supabase mientras se descarga la app (menos espera al cargar el catálogo). -->
     <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
     <link rel="dns-prefetch" href="%VITE_SUPABASE_URL%" />
-    <title>CoplinTech</title>
-    <!-- Fondo oscuro inmediato: evita el destello blanco antes de que cargue el CSS. -->
+    <link rel="preload" as="image" href="/brand/logo-mark.png" />
+
+    <!-- Fondo oscuro y pantalla de carga con el logo antes de que llegue el JavaScript. -->
     <style>
       html { background: #14181f; color-scheme: dark; }
+      body { margin: 0; }
+      .boot { min-height: 100svh; display: grid; place-content: center; justify-items: center; gap: 18px; }
+      .boot img { width: 96px; height: auto; animation: boot-pulse 1.6s ease-in-out infinite; }
+      .boot span { width: 120px; height: 2px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.08); position: relative; }
+      .boot span::after { content: ''; position: absolute; inset: 0; width: 40%; background: rgba(255,255,255,.7); animation: boot-bar 1.2s ease-in-out infinite; }
+      @keyframes boot-pulse { 50% { opacity: .55; transform: translateY(-4px); } }
+      @keyframes boot-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+      @media (prefers-reduced-motion: reduce) { .boot img, .boot span::after { animation: none; } }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Cargando CoplinTech">
+        <img src="/brand/logo-mark.png" alt="" width="464" height="376" />
+        <span></span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
