@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { formatDOP } from '@/lib/currency/format'
 import { cn } from '@/lib/utils'
 import { CATALOG_PAGE_SIZE, useCatalogCategories, useCatalogProducts, useCatalogRealtime, useRealtimeStatus } from './hooks'
+import { AddToCartButton } from './cart/AddToCartButton'
 import { CatalogHero } from './CatalogHero'
 import { ProductImage } from './ProductImage'
 
@@ -110,19 +111,25 @@ export default function CatalogPage() {
         <>
           <ul className={cn('grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4', products.isPlaceholderData && 'opacity-60')}>
             {products.data.rows.map((p) => (
-              <li key={p.slug}>
+              <li key={p.slug} className="flex h-full flex-col overflow-hidden rounded-lg border bg-card transition-colors hover:border-foreground/20">
                 <Link
                   to={`/catalogo/${p.slug}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-lg border bg-card transition-colors hover:border-foreground/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  className="group flex flex-1 flex-col focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   <ProductImage path={p.image_path} alt={p.name} className="aspect-square w-full" />
-                  <div className="flex flex-1 flex-col gap-1.5 p-3">
+                  <div className="flex flex-1 flex-col gap-1.5 p-3 pb-2">
                     {p.brand && <p className="text-xs text-muted-foreground">{p.brand}</p>}
                     <p className="line-clamp-2 text-sm font-medium group-hover:underline">{p.name}</p>
                     <p className="mt-auto pt-1 text-base font-semibold tabular-nums">{formatDOP(p.sale_price)}</p>
                     <AvailabilityBadge value={p.availability} className="self-start" />
                   </div>
                 </Link>
+                <div className="px-3 pb-3">
+                  <AddToCartButton
+                    product={{ slug: p.slug, name: p.name, price: Number(p.sale_price), imagePath: p.image_path, availability: p.availability }}
+                    className="w-full"
+                  />
+                </div>
               </li>
             ))}
           </ul>

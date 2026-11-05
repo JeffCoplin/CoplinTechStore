@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Link, Outlet } from 'react-router'
 import { Brand } from '@/components/navigation/Brand'
 import { LoadingState } from '@/components/shared/states'
+import { CartButton, CartSheet } from '@/features/catalog/cart/CartSheet'
 import { useStoreInfo } from '@/features/catalog/hooks'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -16,8 +17,10 @@ export function PublicLayout() {
           <Link to="/catalogo" aria-label={`${storeName} — inicio del catálogo`}>
             <Brand subtitle="Catálogo de productos" />
           </Link>
+          <CartButton />
         </div>
       </header>
+      <CartSheet />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
         <Suspense fallback={<LoadingState />}>
           <Outlet />

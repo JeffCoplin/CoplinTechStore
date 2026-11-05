@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { formatDOP } from '@/lib/currency/format'
 import { buildWhatsappLink } from '@/lib/utils/whatsapp'
 import { useCatalogProduct, useCatalogRealtime, useStoreInfo } from './hooks'
+import { AddToCartButton } from './cart/AddToCartButton'
 import { ProductImage } from './ProductImage'
 
 export default function CatalogProductPage() {
@@ -66,18 +67,24 @@ export default function CatalogProductPage() {
           <p className="text-3xl font-semibold tabular-nums">{formatDOP(p.sale_price)}</p>
           <AvailabilityBadge value={p.availability} className="self-start text-sm" />
           {p.description && <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{p.description}</p>}
-          <div className="mt-2">
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <AddToCartButton
+              size="lg"
+              product={{ slug: p.slug, name: p.name, price: Number(p.sale_price), imagePath: p.image_path, availability: p.availability }}
+            />
             {whatsapp ? (
-              <Button asChild size="lg" className="bg-emerald-600 text-white hover:bg-emerald-500">
+              <Button asChild size="lg" variant="outline" className="border-emerald-600/60 text-emerald-300 hover:bg-emerald-600/10">
                 <a href={whatsapp} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle aria-hidden /> Consultar por WhatsApp
+                  <MessageCircle aria-hidden /> Consultar solo este
                 </a>
               </Button>
             ) : (
-              <p className="text-sm text-muted-foreground">El contacto por WhatsApp aún no está configurado.</p>
+              <p className="self-center text-sm text-muted-foreground">El contacto por WhatsApp aún no está configurado.</p>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">La disponibilidad puede cambiar. No se realizan compras ni reservas en línea.</p>
+          <p className="text-xs text-muted-foreground">
+            Agrega varios productos al carrito y envíanos la lista por WhatsApp. La disponibilidad puede cambiar; no se realizan cobros ni reservas en línea.
+          </p>
         </div>
       </article>
     </div>

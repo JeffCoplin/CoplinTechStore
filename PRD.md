@@ -751,6 +751,16 @@ No desarrollar en esta etapa:
 
 Cualquier ampliación de este alcance debe documentarse como una versión posterior.
 
+### 11.1 Ampliación v1.1 — Carrito de consulta por WhatsApp (aprobada por el propietario, 2026-11-05)
+
+A petición del propietario se añade al catálogo público un **carrito de consulta**. No cambia el principio de "sin pedidos ni pagos online":
+
+- Vive solo en el navegador del visitante (`localStorage`): **no** crea pedidos, ventas ni registros en la base de datos, no cobra y no reserva existencias.
+- El visitante agrega productos y cantidades (1–20 por línea, máx. 30 líneas) y pulsa **Enviar por WhatsApp**, que abre el chat del número configurado con la lista, precios del catálogo y total **estimado**.
+- Los productos agotados no se pueden agregar y se excluyen del mensaje; no se muestran cantidades exactas.
+- Al abrir el carrito se refrescan precio y disponibilidad con la RPC pública `get_public_catalog_products_by_slugs`, con la misma proyección segura que el catálogo. Los productos que dejan de estar publicados se quitan.
+- La venta se sigue registrando en el POS cuando el cliente compra en persona o confirma por WhatsApp.
+
 ## 12. Fases de implementación
 
 ### Fase 0 — Fundación

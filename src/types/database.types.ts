@@ -309,6 +309,18 @@ export interface Database {
           availability: string
         }[]
       }
+      get_public_catalog_products_by_slugs: {
+        Args: { p_slugs: string[] }
+        Returns: {
+          name: string
+          slug: string
+          brand: string | null
+          category_name: string | null
+          sale_price: number
+          image_path: string | null
+          availability: string
+        }[]
+      }
       get_public_categories: { Args: Record<string, never>; Returns: { name: string; slug: string }[] }
       get_public_store_info: {
         Args: Record<string, never>

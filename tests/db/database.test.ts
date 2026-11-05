@@ -99,6 +99,13 @@ describe('acceso anónimo', () => {
 
     const detail = await as(db, 'anon', (tx) => tx.query(`select * from public.get_public_catalog_product_by_slug($1)`, [hidden.slug]))
     expect(detail.rows).toHaveLength(0)
+
+    // Carrito de consulta: misma proyección segura y mismos filtros de visibilidad.
+    const cart = await as(db, 'anon', (tx) =>
+      tx.query<Record<string, unknown>>(`select * from public.get_public_catalog_products_by_slugs($1)`, [[visible.slug, out.slug, hidden.slug, inactive.slug, 'no-existe']]),
+    )
+    expect(Object.keys(cart.rows[0] ?? {}).sort()).toEqual(['availability', 'brand', 'category_name', 'image_path', 'name', 'sale_price', 'slug'])
+    expect(cart.rows.map((r) => r.slug).sort()).toEqual([out.slug, visible.slug].sort())
   })
 
   it('la búsqueda pública escapa comodines', async () => {

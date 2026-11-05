@@ -39,6 +39,12 @@ Además, triggers impiden `UPDATE/DELETE` de `stock_movements` y `sale_items`, y
 
 Todas las funciones fijan `search_path = ''` y califican objetos con su esquema.
 
+## Carrito de consulta (v1.1)
+
+- [x] Sin escritura: el carrito vive en `localStorage` del visitante; no hay tablas ni RPC de pedidos.
+- [x] `get_public_catalog_products_by_slugs(text[])`: SECURITY DEFINER, `search_path = ''`, EXECUTE solo `anon`/`authenticated`; mismos filtros de visibilidad y columnas seguras que el catálogo (sin costo, stock ni umbral); máximo 50 slugs por llamada.
+- [x] El contenido de `localStorage` se valida al leerlo (slugs con patrón, precios > 0, cantidades 1–20, máx. 30 líneas) y los precios se refrescan desde la BD antes de enviar.
+
 ## Catálogo y Realtime
 
 - [x] El catálogo nunca consulta tablas: solo las RPC públicas.
