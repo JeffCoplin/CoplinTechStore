@@ -1,0 +1,9 @@
+-- CoplinTech · seed.sql
+-- Intencionalmente vacío: no se cargan productos, ventas ni datos ficticios.
+-- `supabase db reset` (solo local) ejecuta este archivo después de las migraciones.
+--
+-- Para crear el propietario en local, sigue docs/SUPABASE_SETUP.md (paso 4):
+-- primero crea el usuario en Auth (Studio local: http://127.0.0.1:54323) y luego:
+--
+--   insert into public.owner_profiles (user_id, display_name)
+--   select id, 'Propietario' from auth.users where email = '<correo-del-propietario>';
