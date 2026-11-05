@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Boxes, ImagePlus, Loader2, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, Boxes } from 'lucide-react'
+import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -21,35 +21,49 @@ import { availabilityFor } from '@/lib/domain/availability'
 import { productImageUrl } from '@/lib/supabase/client'
 import { toUserMessage } from '@/lib/supabase/errors'
 import { slugify } from '@/lib/utils/slug'
-import { useProduct, useSaveProduct } from './api'
-import { compressProductImage } from './compress-image'
-import { productSchema, validateImageFile, validateUploadImage, type ProductFormInput, type ProductValues } from './schema'
+import { useProduct, useProductImages, useSaveProduct } from './api'
+import { galleryChanged, type GalleryItem } from './gallery'
+import { ProductGalleryEditor } from './ProductGalleryEditor'
+import { productSchema, type ProductFormInput, type ProductValues } from './schema'
 
 export default function ProductFormPage() {
   const { id } = useParams()
   const isNew = !id
   const product = useProduct(id)
+  const images = useProductImages(id)
   const settings = useStoreSettings()
 
-  if (!isNew && product.isPending) return <LoadingState label="Cargando producto…" />
+  if (!isNew && (product.isPending || images.isPending)) return <LoadingState label="Cargando producto…" />
   if (!isNew && product.isError) return <ErrorState error={product.error} onRetry={() => void product.refetch()} />
+  if (!isNew && images.isError) return <ErrorState error={images.error} onRetry={() => void images.refetch()} />
   if (!isNew && !product.data)
     return <EmptyState title="Producto no encontrado" action={<Button asChild variant="outline"><Link to="/admin/productos">Volver</Link></Button>} />
   if (isNew && settings.isPending) return <LoadingState />
 
-  return <ProductForm key={id ?? 'new'} product={product.data ?? null} defaultThreshold={settings.data?.default_low_stock_threshold ?? 2} />
+  // Tras guardar, la galería se vuelve a leer y el formulario se reinicia con lo guardado.
+  return (
+    <ProductForm
+      key={`${id ?? 'new'}-${images.dataUpdatedAt}`}
+      product={product.data ?? null}
+      savedImages={images.data ?? []}
+      defaultThreshold={settings.data?.default_low_stock_threshold ?? 2}
+    />
+  )
 }
 
 type ProductRow = NonNullable<ReturnType<typeof useProduct>['data']>
 
-function ProductForm({ product, defaultThreshold }: { product: ProductRow | null; defaultThreshold: number }) {
+function toGallery(paths: string[]): GalleryItem[] {
+  return paths.map((path) => ({ key: path, path, file: null, preview: productImageUrl(path) ?? '' }))
+}
+
+function ProductForm({ product, savedImages, defaultThreshold }: { product: ProductRow | null; savedImages: string[]; defaultThreshold: number }) {
   const navigate = useNavigate()
   const categories = useCategories()
   const save = useSaveProduct()
-  const [newImage, setNewImage] = useState<File | null>(null)
-  const [removeImage, setRemoveImage] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<GalleryItem[]>(() => toGallery(savedImages))
   const [optimizing, setOptimizing] = useState(false)
+  const imagesChanged = galleryChanged(gallery, savedImages)
 
   const form = useForm<ProductFormInput, unknown, ProductValues>({
     resolver: zodResolver(productSchema),
@@ -71,27 +85,17 @@ function ProductForm({ product, defaultThreshold }: { product: ProductRow | null
   })
   const { errors, isDirty } = form.formState
 
-  const previewUrl = useMemo(() => (newImage ? URL.createObjectURL(newImage) : null), [newImage])
-  useEffect(() => () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-  }, [previewUrl])
-  const currentImage = previewUrl ?? (removeImage ? null : productImageUrl(product?.image_path))
-
   const cost = form.watch('cost_price')
   const price = form.watch('sale_price')
   const margin = Number.isFinite(cost) && Number.isFinite(price) && price > 0 ? price - cost : null
 
   const onSubmit = form.handleSubmit((values) =>
     save.mutate(
-      { id: product?.id, values, newImage, removeImage, previousImagePath: product?.image_path ?? null },
+      { id: product?.id, values, gallery },
       {
         onSuccess: (savedId) => {
           toast.success(product ? 'Producto actualizado' : 'Producto creado')
-          if (product) {
-            setNewImage(null)
-            setRemoveImage(false)
-            form.reset(form.getValues())
-          } else navigate(`/admin/productos/${savedId}`, { replace: true })
+          if (!product) navigate(`/admin/productos/${savedId}`, { replace: true })
         },
         onError: (e) => toast.error(toUserMessage(e)),
       },
@@ -198,71 +202,10 @@ function ProductForm({ product, defaultThreshold }: { product: ProductRow | null
         <div className="grid content-start gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Imagen principal</CardTitle>
+              <CardTitle>Imágenes</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3">
-              {currentImage ? (
-                <img src={currentImage} alt="Vista previa del producto" className="aspect-square w-full rounded-md border object-cover" />
-              ) : (
-                <div className="flex aspect-square w-full items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">Sin imagen</div>
-              )}
-              <label
-                aria-disabled={optimizing || undefined}
-                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted focus-within:ring-3 focus-within:ring-ring/50 aria-disabled:pointer-events-none aria-disabled:opacity-60"
-              >
-                {optimizing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <ImagePlus className="size-4" aria-hidden />}
-                {optimizing ? 'Optimizando imagen…' : currentImage ? 'Reemplazar imagen' : 'Subir imagen'}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="sr-only"
-                  disabled={optimizing}
-                  aria-describedby="p-image-hint"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    const err = validateImageFile(file)
-                    setImageError(err)
-                    if (err) return
-                    setOptimizing(true)
-                    try {
-                      // Redimensiona (máx. 1200 px) y recomprime a WebP antes de subir.
-                      const optimized = await compressProductImage(file).catch(() => file)
-                      const uploadErr = validateUploadImage(optimized)
-                      setImageError(uploadErr)
-                      if (!uploadErr) {
-                        setNewImage(optimized)
-                        setRemoveImage(false)
-                      }
-                    } finally {
-                      setOptimizing(false)
-                    }
-                  }}
-                />
-              </label>
-              {currentImage && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setNewImage(null)
-                    setRemoveImage(true)
-                  }}
-                >
-                  <Trash2 aria-hidden /> Quitar imagen
-                </Button>
-              )}
-              <p id="p-image-hint" className="text-xs text-muted-foreground">
-                JPG, PNG o WebP (hasta 20 MB). Se optimiza automáticamente a 1200 px en WebP antes de subirla.
-                {newImage && ` Lista para guardar: ${Math.max(1, Math.round(newImage.size / 1024))} KB.`}
-              </p>
-              {imageError && (
-                <p role="alert" className="text-xs text-destructive">
-                  {imageError}
-                </p>
-              )}
+            <CardContent>
+              <ProductGalleryEditor items={gallery} onChange={setGallery} onBusyChange={setOptimizing} disabled={save.isPending} />
             </CardContent>
           </Card>
 
@@ -300,7 +243,7 @@ function ProductForm({ product, defaultThreshold }: { product: ProductRow | null
             </CardContent>
           </Card>
 
-          <Button type="submit" size="lg" disabled={save.isPending || optimizing || (!isDirty && !newImage && !removeImage && Boolean(product))}>
+          <Button type="submit" size="lg" disabled={save.isPending || optimizing || (!isDirty && !imagesChanged && Boolean(product))}>
             {save.isPending ? 'Guardando…' : product ? 'Guardar cambios' : 'Crear producto'}
           </Button>
         </div>

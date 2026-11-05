@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PAGE_SIZE } from '@/components/shared/Pagination'
 import { PRODUCT_IMAGES_BUCKET, supabase } from '@/lib/supabase/client'
+import type { GalleryItem } from './gallery'
 import type { ProductValues } from './schema'
 
 export const productsKey = ['products'] as const
@@ -102,49 +103,79 @@ export async function uploadProductImage(file: File): Promise<string> {
   return path
 }
 
-export async function removeProductImage(path: string): Promise<void> {
-  await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([path])
+export async function removeProductImages(paths: string[]): Promise<void> {
+  if (paths.length) await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove(paths)
+}
+
+/** Galería guardada del producto, en orden (la primera es la principal). */
+export function useProductImages(productId: string | undefined) {
+  return useQuery({
+    queryKey: [...productsKey, 'images', productId],
+    enabled: Boolean(productId),
+    // El formulario se reinicia cuando cambia esta consulta: solo debe recargarse tras guardar.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('product_images')
+        .select('image_path, sort_order')
+        .eq('product_id', productId!)
+        .order('sort_order')
+        .order('created_at')
+      if (error) throw error
+      return data.map((r) => r.image_path)
+    },
+  })
 }
 
 interface SaveProductArgs {
   id?: string
   values: ProductValues
-  newImage: File | null
-  removeImage: boolean
-  previousImagePath: string | null
+  /** Galería final en orden: rutas existentes o archivos nuevos por subir. */
+  gallery: GalleryItem[]
 }
 
 export function useSaveProduct() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, values, newImage, removeImage, previousImagePath }: SaveProductArgs) => {
-      let imagePath = removeImage ? null : previousImagePath
-      let uploaded: string | null = null
-      if (newImage) {
-        uploaded = await uploadProductImage(newImage)
-        imagePath = uploaded
+    mutationFn: async ({ id, values, gallery }: SaveProductArgs) => {
+      // 1. Subir las imágenes nuevas.
+      const uploaded: string[] = []
+      const paths: string[] = []
+      try {
+        for (const item of gallery) {
+          if (item.file) {
+            const path = await uploadProductImage(item.file)
+            uploaded.push(path)
+            paths.push(path)
+          } else if (item.path) paths.push(item.path)
+        }
+      } catch (e) {
+        await removeProductImages(uploaded).catch(() => undefined)
+        throw e
       }
+
+      // 2. Guardar el producto. La edición NO toca stock_quantity (se cambia desde Inventario)
+      //    ni image_path (la mantiene la base de datos a partir de la galería).
       const { stock_quantity, ...editable } = values
       try {
         if (id) {
-          // La edición NO toca stock_quantity: las existencias cambian desde Inventario.
-          const { error } = await supabase.from('products').update({ ...editable, image_path: imagePath }).eq('id', id)
+          const { error } = await supabase.from('products').update(editable).eq('id', id)
           if (error) throw error
         } else {
-          const { data, error } = await supabase
-            .from('products')
-            .insert({ ...editable, stock_quantity, image_path: imagePath })
-            .select('id')
-            .single()
+          const { data, error } = await supabase.from('products').insert({ ...editable, stock_quantity }).select('id').single()
           if (error) throw error
           id = data.id
         }
+        // 3. Guardar la galería completa en una transacción.
+        const { data: removed, error } = await supabase.rpc('set_product_images', { p_product_id: id, p_paths: paths })
+        if (error) throw error
+        // 4. Las imágenes que ya no se usan se borran de Storage.
+        await removeProductImages((removed ?? []).map((r) => r.removed_path)).catch(() => undefined)
       } catch (e) {
-        if (uploaded) await removeProductImage(uploaded).catch(() => undefined)
+        await removeProductImages(uploaded).catch(() => undefined)
         throw e
       }
-      // La referencia ya apunta a la nueva imagen: la anterior se puede borrar.
-      if (previousImagePath && previousImagePath !== imagePath) await removeProductImage(previousImagePath).catch(() => undefined)
       return id
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: productsKey }),

@@ -538,3 +538,63 @@ describe('configuración y categorías', () => {
     expect(prods.rows).toHaveLength(0)
   })
 })
+
+describe('galería de imágenes (product_images)', () => {
+  const img = () => `products/${crypto.randomUUID()}.webp`
+
+  it('el propietario define la galería; la primera es la principal', async () => {
+    const p = await createProduct()
+    const [a, b, c] = [img(), img(), img()]
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [a, b, c]]))
+    expect((await one<{ image_path: string }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBe(a)
+
+    // Reordenar y quitar una: devuelve la ruta eliminada para borrarla de Storage.
+    const removed = await as(db, 'owner', (tx) => tx.query<{ removed_path: string }>(`select * from public.set_product_images($1, $2)`, [p.id, [c, a]]))
+    expect(removed.rows.map((r) => r.removed_path)).toEqual([b])
+    expect((await one<{ image_path: string }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBe(c)
+
+    const pub = await as(db, 'anon', (tx) => one<{ images: string[] }>(tx, `select images from public.get_public_catalog_product_by_slug($1)`, [p.slug]))
+    expect(pub.images).toEqual([c, a])
+
+    // Galería vacía → sin imagen principal.
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, []]))
+    expect((await one<{ image_path: string | null }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBeNull()
+  })
+
+  it('valida límite, rutas, duplicados y pertenencia', async () => {
+    const p = await createProduct()
+    const other = await createProduct()
+    const shared = img()
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [other.id, [shared]]))
+    const cases: [string[], RegExp][] = [
+      [Array.from({ length: 9 }, img), /Máximo 8/],
+      [['products/../../hack.webp'], /inválida/],
+      [['https://evil.test/x.webp'], /inválida/],
+      [[shared], /otro producto/],
+    ]
+    const dup = img()
+    cases.push([[dup, dup], /repetidas/])
+    for (const [paths, re] of cases) {
+      const err = await pgError(as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, paths])))
+      expect(err?.message, paths.join(',')).toMatch(re)
+    }
+  })
+
+  it('anon y no propietarios no pueden leer ni modificar la galería', async () => {
+    const p = await createProduct()
+    expect((await pgError(as(db, 'anon', (tx) => tx.query('select * from public.product_images'))))?.code).toBe('42501')
+    expect((await pgError(as(db, 'anon', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [img()]]))))?.code).toBe('42501')
+    expect((await pgError(as(db, 'stranger', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [img()]]))))?.code).toBe('42501')
+    expect((await pgError(as(db, 'owner', (tx) => tx.query(`insert into public.product_images (product_id, image_path) values ($1, $2)`, [p.id, img()]))))?.code).toBe('42501')
+    expect((await as(db, 'stranger', (tx) => tx.query('select * from public.product_images'))).rows).toHaveLength(0)
+  })
+
+  it('cambiar la galería de un producto visible avisa al catálogo con payload saneado', async () => {
+    const p = await createProduct()
+    await db.query('delete from realtime.sent')
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [img(), img()]]))
+    const sent = await db.query<{ payload: Record<string, unknown> }>('select payload from realtime.sent')
+    expect(sent.rows.length).toBeGreaterThan(0)
+    for (const r of sent.rows) expect(r.payload).toEqual({ kind: 'product', slug: p.slug })
+  })
+})

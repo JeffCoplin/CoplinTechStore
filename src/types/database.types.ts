@@ -94,6 +94,20 @@ export interface Database {
           },
         ]
       }
+      product_images: {
+        Row: { id: string; product_id: string; image_path: string; sort_order: number; created_at: string }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'product_images_product_id_fkey'
+            columns: ['product_id']
+            isOneToOne: false
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       sales: {
         Row: {
           id: string
@@ -307,7 +321,12 @@ export interface Database {
           sale_price: number
           image_path: string | null
           availability: string
+          images: string[]
         }[]
+      }
+      set_product_images: {
+        Args: { p_product_id: string; p_paths: string[] }
+        Returns: { removed_path: string }[]
       }
       get_public_catalog_products_by_slugs: {
         Args: { p_slugs: string[] }

@@ -8,7 +8,7 @@ import { formatDOP } from '@/lib/currency/format'
 import { buildWhatsappLink } from '@/lib/utils/whatsapp'
 import { useCatalogProduct, useCatalogRealtime, useStoreInfo } from './hooks'
 import { AddToCartButton } from './cart/AddToCartButton'
-import { ProductImage } from './ProductImage'
+import { ProductGallery } from './ProductGallery'
 
 export default function CatalogProductPage() {
   useCatalogRealtime()
@@ -56,7 +56,7 @@ export default function CatalogProductPage() {
     <div>
       {back}
       <article className="grid gap-6 md:grid-cols-2 md:gap-10">
-        <ProductImage path={p.image_path} alt={p.name} className="aspect-square w-full rounded-lg border" />
+        <ProductGallery images={p.images?.length ? p.images : p.image_path ? [p.image_path] : []} alt={p.name} />
         <div className="flex flex-col gap-4">
           <div>
             {(p.brand || p.category_name) && (
