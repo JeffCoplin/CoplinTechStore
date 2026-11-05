@@ -1,5 +1,26 @@
 # Despliegue en Vercel
 
+**Producción actual:** https://coplintech.vercel.app (proyecto Vercel `coplintech`, Supabase `lcnfdcoteztogbnzzdie`).
+
+Redesplegar manualmente desde la carpeta del proyecto:
+
+```bash
+npx vercel deploy --prod
+```
+
+Para que cada `git push` a `main` despliegue solo: Vercel → proyecto `coplintech` → **Settings → Git → Connect Git Repository** → `JeffCoplin/CoplinTechStore`.
+
+## Mantener Supabase activo (plan gratuito)
+
+Supabase pausa los proyectos gratuitos tras 7 días sin actividad. El workflow `.github/workflows/keep-supabase-awake.yml` consulta una RPC pública cada día. Necesita dos secrets del repositorio (desde PowerShell, en la carpeta del proyecto):
+
+```powershell
+gh secret set SUPABASE_URL --repo JeffCoplin/CoplinTechStore --body ((Select-String -Path .env.local -Pattern '^VITE_SUPABASE_URL=(.*)$').Matches[0].Groups[1].Value.Trim())
+gh secret set SUPABASE_PUBLISHABLE_KEY --repo JeffCoplin/CoplinTechStore --body ((Select-String -Path .env.local -Pattern '^VITE_SUPABASE_PUBLISHABLE_KEY=(.*)$').Matches[0].Groups[1].Value.Trim())
+```
+
+Pruébalo en GitHub → **Actions → Mantener Supabase activo → Run workflow**.
+
 ## 1. Importar el repositorio
 
 1. En [vercel.com](https://vercel.com) → **Add New → Project** → importa `JeffCoplin/CoplinTechStore`.
