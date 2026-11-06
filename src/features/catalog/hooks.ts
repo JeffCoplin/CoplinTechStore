@@ -1,9 +1,22 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { buildWhatsappLink } from '@/lib/utils/whatsapp'
 import { getRealtimeStatus, onRealtimeStatusChange, subscribeCatalogChanges } from './realtime'
 
 export const CATALOG_PAGE_SIZE = 24
+
+export const CATALOG_SORTS = [
+  { value: null, label: 'Nombre (A–Z)' },
+  { value: 'price_asc', label: 'Precio: menor a mayor' },
+  { value: 'price_desc', label: 'Precio: mayor a menor' },
+  { value: 'newest', label: 'Más nuevos' },
+] as const
+export type CatalogSort = (typeof CATALOG_SORTS)[number]['value']
+
+export function parseCatalogSort(raw: string | null): CatalogSort {
+  return CATALOG_SORTS.find((s) => s.value === raw)?.value ?? null
+}
 const catalogKey = ['catalog'] as const
 
 /** Revalidación de respaldo: frecuente si Realtime no está conectado. */
@@ -24,6 +37,17 @@ export function useStoreInfo() {
   })
 }
 
+/** Enlace de WhatsApp con un saludo general (no de un producto concreto). */
+export function useStoreWhatsappLink(): string | null {
+  const store = useStoreInfo()
+  return (
+    buildWhatsappLink(store.data?.whatsapp_number, 'el catálogo', `${window.location.origin}/catalogo`)?.replace(
+      encodeURIComponent('me interesa este producto: el catálogo'),
+      encodeURIComponent('vi su catálogo y tengo una consulta.'),
+    ) ?? null
+  )
+}
+
 export function useCatalogCategories() {
   const refetchInterval = useFallbackInterval()
   return useQuery({
@@ -37,10 +61,10 @@ export function useCatalogCategories() {
   })
 }
 
-export function useCatalogProducts(search: string, categorySlug: string | null, page: number) {
+export function useCatalogProducts(search: string, categorySlug: string | null, page: number, sort: CatalogSort) {
   const refetchInterval = useFallbackInterval()
   return useQuery({
-    queryKey: [...catalogKey, 'products', { search, categorySlug, page }],
+    queryKey: [...catalogKey, 'products', { search, categorySlug, page, sort }],
     placeholderData: keepPreviousData,
     refetchInterval,
     queryFn: async () => {
@@ -49,6 +73,8 @@ export function useCatalogProducts(search: string, categorySlug: string | null, 
         p_category_slug: categorySlug,
         p_limit: CATALOG_PAGE_SIZE,
         p_offset: page * CATALOG_PAGE_SIZE,
+        // Solo se envía si se eligió: el orden por nombre funciona aunque la migración no esté aplicada.
+        ...(sort ? { p_sort: sort } : {}),
       })
       if (error) throw error
       const rows = data ?? []

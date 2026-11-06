@@ -116,6 +116,19 @@ describe('acceso anónimo', () => {
     expect(none.rows).toHaveLength(0)
   })
 
+  it('el catálogo público ordena por precio y novedad, con agotados al final', async () => {
+    await createProduct({ name: 'Orden B barato', price: 500 })
+    await createProduct({ name: 'Orden A caro', price: 3000 })
+    await createProduct({ name: 'Orden C agotado', price: 100, stock: 0 })
+    const names = async (sort: string | null) =>
+      (await as(db, 'anon', (tx) => tx.query<{ name: string }>(`select name from public.get_public_catalog_products('Orden', null, 100, 0, $1)`, [sort]))).rows.map((r) => r.name)
+    expect(await names(null)).toEqual(['Orden A caro', 'Orden B barato', 'Orden C agotado'])
+    expect(await names('price_asc')).toEqual(['Orden B barato', 'Orden A caro', 'Orden C agotado'])
+    expect(await names('price_desc')).toEqual(['Orden A caro', 'Orden B barato', 'Orden C agotado'])
+    expect(await names('newest')).toEqual(['Orden A caro', 'Orden B barato', 'Orden C agotado'])
+    expect(await names('desconocido')).toEqual(await names(null))
+  })
+
   it('la información pública de tienda no incluye campos internos', async () => {
     const r = await as(db, 'anon', (tx) => tx.query<Record<string, unknown>>(`select * from public.get_public_store_info()`))
     expect(Object.keys(r.rows[0] ?? {}).sort()).toEqual(['store_name', 'whatsapp_number'])

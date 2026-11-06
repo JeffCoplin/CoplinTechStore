@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router'
 import { Brand } from '@/components/navigation/Brand'
 import { LoadingState } from '@/components/shared/states'
 import { CartButton, CartSheet } from '@/features/catalog/cart/CartSheet'
+import { FloatingActions } from '@/features/catalog/FloatingActions'
 import { useStoreInfo } from '@/features/catalog/hooks'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -21,7 +22,8 @@ export function PublicLayout() {
         </div>
       </header>
       <CartSheet />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
+      <FloatingActions />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 sm:pt-8">
         <Suspense fallback={<LoadingState />}>
           <Outlet />
         </Suspense>

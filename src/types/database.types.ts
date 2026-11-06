@@ -295,7 +295,7 @@ export interface Database {
         }[]
       }
       get_public_catalog_products: {
-        Args: { p_search?: string | null; p_category_slug?: string | null; p_limit?: number; p_offset?: number }
+        Args: { p_search?: string | null; p_category_slug?: string | null; p_limit?: number; p_offset?: number; p_sort?: string | null }
         Returns: {
           name: string
           slug: string

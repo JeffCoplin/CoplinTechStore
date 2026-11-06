@@ -1,17 +1,19 @@
-import { Search, WifiOff } from 'lucide-react'
+import { ArrowDownUp, Search, WifiOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { AvailabilityBadge } from '@/components/shared/AvailabilityBadge'
+import { NativeSelect } from '@/components/shared/NativeSelect'
 import { Pagination } from '@/components/shared/Pagination'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatDOP } from '@/lib/currency/format'
 import { cn } from '@/lib/utils'
-import { CATALOG_PAGE_SIZE, useCatalogCategories, useCatalogProducts, useCatalogRealtime, useRealtimeStatus } from './hooks'
+import { CATALOG_PAGE_SIZE, CATALOG_SORTS, parseCatalogSort, useCatalogCategories, useCatalogProducts, useCatalogRealtime, useRealtimeStatus } from './hooks'
 import { AddToCartButton } from './cart/AddToCartButton'
 import { CatalogHero } from './CatalogHero'
 import { ProductImage } from './ProductImage'
+import { TrustStrip } from './TrustStrip'
 
 export default function CatalogPage() {
   useCatalogRealtime()
@@ -20,6 +22,7 @@ export default function CatalogPage() {
   const search = params.get('q') ?? ''
   const category = params.get('categoria')
   const page = Math.max(0, Number(params.get('pagina') ?? '1') - 1) || 0
+  const sort = parseCatalogSort(params.get('orden'))
   const [draft, setDraft] = useState(search)
   // Si la URL cambia desde fuera (atrás/adelante, "Ver todos"), el campo se sincroniza.
   const [lastSearch, setLastSearch] = useState(search)
@@ -42,7 +45,10 @@ export default function CatalogPage() {
   }, [draft, search, params, setParams])
 
   const categories = useCatalogCategories()
-  const products = useCatalogProducts(search, category, page)
+  const products = useCatalogProducts(search, category, page, sort)
+  const compact = Boolean(search || category || page > 0)
+  const categoryName = categories.data?.find((c) => c.slug === category)?.name
+  const heading = search ? `Resultados para “${search}”` : category ? (categoryName ?? 'Catálogo de productos') : 'Catálogo de productos'
 
   const setCategory = (slug: string | null) => {
     const next = new URLSearchParams(params)
@@ -52,23 +58,51 @@ export default function CatalogPage() {
     setParams(next)
   }
 
-  return (
-    <div className="grid gap-6">
-      <CatalogHero
-        compact={Boolean(search || category || page > 0)}
-        productCount={!search && !category && products.data ? products.data.total : null}
-      />
+  const setSort = (value: string) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set('orden', value)
+    else next.delete('orden')
+    next.delete('pagina')
+    setParams(next, { replace: true })
+  }
 
-      <div className="flex flex-col gap-3">
-        <label htmlFor="catalog-search" className="sr-only">
-          Buscar productos
-        </label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input id="catalog-search" type="search" placeholder="Buscar por nombre o marca…" value={draft} onChange={(e) => setDraft(e.target.value)} className="h-10 pl-9" maxLength={80} />
+  return (
+    // minmax(0,1fr): la fila de categorías con scroll horizontal no debe ensanchar la página en móvil.
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
+      <CatalogHero compact={compact} heading={heading} productCount={products.data ? products.data.total : null} />
+
+      {!compact && <TrustStrip />}
+
+      {/* Fija bajo el encabezado (h-16) para cambiar de categoría sin volver arriba. */}
+      <div className="sticky top-16 z-20 -mx-4 flex flex-col gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur">
+        <div className="flex gap-2">
+          <label htmlFor="catalog-search" className="sr-only">
+            Buscar productos
+          </label>
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input id="catalog-search" type="search" placeholder="Buscar por nombre o marca…" value={draft} onChange={(e) => setDraft(e.target.value)} className="h-10 pl-9" maxLength={80} />
+          </div>
+          <label htmlFor="catalog-sort" className="sr-only">
+            Ordenar por
+          </label>
+          <div className="relative w-12 shrink-0 sm:w-56">
+            <ArrowDownUp className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <NativeSelect id="catalog-sort" value={sort ?? ''} onChange={(e) => setSort(e.target.value)} className="h-10 cursor-pointer pl-9 text-transparent sm:text-foreground">
+              {CATALOG_SORTS.map((s) => (
+                <option key={s.label} value={s.value ?? ''} className="text-foreground">
+                  {s.label}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
         </div>
         {categories.data && categories.data.length > 0 && (
-          <div role="group" aria-label="Filtrar por categoría" className="flex flex-wrap gap-2">
+          <div
+            role="group"
+            aria-label="Filtrar por categoría"
+            className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+          >
             <CategoryChip active={!category} onClick={() => setCategory(null)}>
               Todas
             </CategoryChip>
@@ -152,7 +186,7 @@ export default function CatalogPage() {
 
 function CategoryChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <Button type="button" size="sm" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={onClick} className="rounded-full">
+    <Button type="button" size="sm" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={onClick} className="shrink-0 rounded-full">
       {children}
     </Button>
   )
