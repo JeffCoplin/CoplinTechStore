@@ -49,6 +49,17 @@ export function validateImageFile(file: Pick<File, 'type' | 'size'>): string | n
   return null
 }
 
+export const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'] as const
+/** Límite del bucket para videos (límite de subida del plan gratuito de Supabase). */
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024
+
+/** Los videos se suben tal cual (no se recomprimen en el navegador). */
+export function validateVideoFile(file: Pick<File, 'type' | 'size'>): string | null {
+  if (!(ALLOWED_VIDEO_TYPES as readonly string[]).includes(file.type)) return 'Formato de video no permitido. Usa MP4, WebM o MOV.'
+  if (file.size > MAX_VIDEO_BYTES) return 'El video supera 50 MB. Recórtalo o grábalo en 1080p.'
+  return null
+}
+
 /** Validación del archivo final que se sube a Storage. */
 export function validateUploadImage(file: Pick<File, 'type' | 'size'>): string | null {
   if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return 'Formato no permitido. Usa JPG, PNG o WebP.'

@@ -574,6 +574,24 @@ describe('galería de imágenes (product_images)', () => {
     expect((await one<{ image_path: string | null }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBeNull()
   })
 
+  it('los videos van primero y nunca son la miniatura', async () => {
+    const p = await createProduct()
+    const [a, b] = [img(), img()]
+    const v = `products/${crypto.randomUUID()}.mp4`
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [a, v, b]]))
+    expect((await one<{ image_path: string }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBe(a)
+    const pub = await as(db, 'anon', (tx) => one<{ images: string[] }>(tx, `select images from public.get_public_catalog_product_by_slug($1)`, [p.slug]))
+    expect(pub.images).toEqual([v, a, b])
+
+    // Solo video → sin miniatura, pero el video sí sale en el detalle.
+    await as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, [v]]))
+    expect((await one<{ image_path: string | null }>(db, 'select image_path from public.products where id = $1', [p.id])).image_path).toBeNull()
+
+    const vids = Array.from({ length: 3 }, () => `products/${crypto.randomUUID()}.webm`)
+    const err = await pgError(as(db, 'owner', (tx) => tx.query(`select * from public.set_product_images($1, $2)`, [p.id, vids])))
+    expect(err?.message).toMatch(/Máximo 2 videos/)
+  })
+
   it('valida límite, rutas, duplicados y pertenencia', async () => {
     const p = await createProduct()
     const other = await createProduct()

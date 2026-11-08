@@ -92,7 +92,8 @@ export function useProductSearch(term: string, { includeInactive = false } = {})
 export type QuickProduct = NonNullable<ReturnType<typeof useProductSearch>['data']>[number]
 
 export async function uploadProductImage(file: File): Promise<string> {
-  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'
+  const EXT: Record<string, string> = { 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' }
+  const ext = EXT[file.type] ?? 'jpg'
   const path = `products/${crypto.randomUUID()}.${ext}`
   const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, {
     contentType: file.type,

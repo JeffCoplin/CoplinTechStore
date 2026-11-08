@@ -38,6 +38,7 @@ coverage
 
 # Respaldos locales de la base de datos (contienen datos reales)
 backups/
+imagenes y videos/
 
 .vercel
 .env*

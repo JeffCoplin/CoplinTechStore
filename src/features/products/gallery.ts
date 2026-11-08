@@ -1,5 +1,10 @@
-/** Máximo de imágenes por producto (también lo valida set_product_images en la BD). */
+import { isVideoPath } from '@/lib/domain/media'
+
+/** Máximo de imágenes y videos por producto (también lo valida set_product_images en la BD). */
 export const MAX_PRODUCT_IMAGES = 8
+/** Máximo de videos dentro de esas piezas (también validado en la BD). */
+export const MAX_PRODUCT_VIDEOS = 2
+
 
 /** Imagen de la galería en edición: ya subida (path) o nueva pendiente de subir (file). */
 export interface GalleryItem {
@@ -8,6 +13,15 @@ export interface GalleryItem {
   file: File | null
   /** URL para la vista previa (pública o blob:). */
   preview: string
+}
+
+export function isVideoItem(item: Pick<GalleryItem, 'path' | 'file'>): boolean {
+  return item.file ? item.file.type.startsWith('video/') : isVideoPath(item.path)
+}
+
+/** Los videos siempre van primero (como en el catálogo); se conserva el orden de cada grupo. */
+export function videosFirst(items: GalleryItem[]): GalleryItem[] {
+  return [...items.filter(isVideoItem), ...items.filter((i) => !isVideoItem(i))]
 }
 
 export function moveItem<T>(list: T[], from: number, to: number): T[] {

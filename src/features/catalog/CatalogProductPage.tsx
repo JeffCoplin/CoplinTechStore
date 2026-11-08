@@ -55,8 +55,11 @@ export default function CatalogProductPage() {
   return (
     <div>
       {back}
-      <article className="grid gap-6 md:grid-cols-2 md:gap-10">
-        <ProductGallery images={p.images?.length ? p.images : p.image_path ? [p.image_path] : []} alt={p.name} />
+      {/* items-start: la galería no se estira al alto de la descripción; en escritorio queda fija al hacer scroll. */}
+      <article className="grid items-start gap-6 md:grid-cols-2 md:gap-10">
+        <div className="md:sticky md:top-20">
+          <ProductGallery images={p.images?.length ? p.images : p.image_path ? [p.image_path] : []} alt={p.name} />
+        </div>
         <div className="flex flex-col gap-4">
           <div>
             {(p.brand || p.category_name) && (
